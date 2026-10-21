@@ -581,8 +581,8 @@ int APS5_VABI _sceFiberInitializeWithInternalOptionImpl(FiberObject* fiber, cons
                                                         uint64_t arg_on_initialize, void* addr_context,
                                                         uint64_t size_context, const FiberOptParam* opt_param,
                                                         uint32_t flags, uint32_t build_version) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
+    if (flags != 0) throw std::runtime_error("_sceFiberInitializeWithInternalOptionImpl: nonzero flags are not implemented");
+    return _sceFiberInitializeImpl_nid_postfix(fiber, name, entry, arg_on_initialize, addr_context, size_context, opt_param, build_version);
 }
 
 }

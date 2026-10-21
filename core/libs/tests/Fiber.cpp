@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <stdexcept>
 #include <thread>
 #include <xmmintrin.h>
 #ifdef _WIN32
@@ -14,6 +15,7 @@ using Entry = void (APS5_VABI*)(std::uint64_t, std::uint64_t);
 
 extern "C" {
 std::int32_t APS5_VABI _sceFiberInitializeImpl_nid_postfix(FiberObject*, const char*, Entry, std::uint64_t, void*, std::uint64_t, const void*, std::uint32_t);
+std::int32_t APS5_VABI _sceFiberInitializeWithInternalOptionImpl(FiberObject*, const char*, Entry, std::uint64_t, void*, std::uint64_t, const void*, std::uint32_t, std::uint32_t);
 std::int32_t APS5_VABI sceFiberFinalize(FiberObject*);
 std::int32_t APS5_VABI sceFiberRun_nid_postfix(FiberObject*, std::uint64_t, std::uint64_t*);
 std::int32_t APS5_VABI sceFiberSwitch(FiberObject*, std::uint64_t, std::uint64_t*);
@@ -242,9 +244,44 @@ void RunOnLargeContext() {
     return result;
 }
 
+FiberStorage g_internalStorage;
+alignas(16) std::array<unsigned char, 16 * 1024> g_internalContext;
+std::uint64_t g_internalArgument = 0;
+
+void InternalEntry(std::uint64_t argOnInitialize, std::uint64_t argOnRun) {
+    g_internalArgument = argOnInitialize + argOnRun;
+    sceFiberReturnToThread(g_internalArgument, nullptr);
+}
+
+void CheckInternalOptionInitialize() {
+    auto* fiber = reinterpret_cast<FiberObject*>(&g_internalStorage);
+    auto* context = g_internalContext.data();
+    const auto size = g_internalContext.size();
+    Require(_sceFiberInitializeWithInternalOptionImpl(nullptr, "null", InternalEntry, 0, context, size, nullptr, 0, 0) == FiberErrorNull, "internal option null fiber");
+    Require(_sceFiberInitializeWithInternalOptionImpl(fiber, nullptr, InternalEntry, 0, context, size, nullptr, 0, 0) == FiberErrorNull, "internal option null name");
+    Require(_sceFiberInitializeWithInternalOptionImpl(fiber, "null", nullptr, 0, context, size, nullptr, 0, 0) == FiberErrorNull, "internal option null entry");
+    Require(_sceFiberInitializeWithInternalOptionImpl(fiber, "invalid", InternalEntry, 0, nullptr, size, nullptr, 0, 0) == FiberErrorInvalid, "internal option context size without address");
+    bool unsupported = false;
+    try {
+        _sceFiberInitializeWithInternalOptionImpl(fiber, "flags", InternalEntry, 0, context, size, nullptr, 1, 0);
+    } catch (const std::runtime_error&) {
+        unsupported = true;
+    }
+    Require(unsupported, "internal option nonzero flags throw");
+    Require(_sceFiberInitializeWithInternalOptionImpl(fiber, "internal", InternalEntry, 40, context, size, nullptr, 0, 0x04000000) == 0, "internal option initialize");
+    FiberInfo info{};
+    info.size = sizeof(info);
+    Require(sceFiberGetInfo(fiber, &info) == 0 && info.arg_on_initialize == 40 && info.size_context == size, "internal option info");
+    Require(info.name[0] == 'i' && info.name[7] == 'l' && info.name[8] == 0, "internal option name");
+    std::uint64_t returned = 0;
+    Require(sceFiberRun_nid_postfix(fiber, 2, &returned) == 0 && returned == 42 && g_internalArgument == 42, "internal option fiber runs");
+    Require(sceFiberFinalize(fiber) == 0, "internal option finalize");
+}
+
 }
 
 int main() {
+    CheckInternalOptionInitialize();
     RunSmallContextFirst();
     FiberObject* self = nullptr;
     Require(sceFiberGetSelf(&self) == FiberErrorPermission, "no fiber on the thread");
