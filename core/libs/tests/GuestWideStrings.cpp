@@ -319,6 +319,10 @@ int main() {
     require(wcstod_nid_postfix(scientific, &end) == 350.0 && end == scientific + 5);
     require(wcstod_nid_postfix(letters, &end) == 0.0 && end == letters);
     require(wcstof_nid_postfix(u"0.25", nullptr) == 0.25f);
+    const char16_t* sign = u" -x";
+    require(std::signbit(wcstof_nid_postfix(sign, &end)) && end == sign && std::signbit(wcstold_nid_postfix(sign, &end)) && !std::signbit(wcstod_nid_postfix(sign, &end)));
+    *__error_nid_postfix() = 0;
+    require(wcstof_nid_postfix(u"0x1p+200", nullptr) == HUGE_VALF && *__error_nid_postfix() == 0);
     const char16_t* half = u"-1.5é";
     require(wcstold_nid_postfix(half, &end) == -1.5L && end == half + 4);
     const char16_t* wideNan = u" -nan(0x123)é";

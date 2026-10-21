@@ -494,6 +494,19 @@ static void CheckFloatUnderflowErrno() {
     Require(strtod_nid_postfix("1e400", &end) == HUGE_VAL && errno == ERANGE);
     errno = 0;
     Require(strtod_nid_postfix("2.2250738585072014e-308", &end) == 0x1p-1022 && errno == 0);
+    Require(strtod_nid_postfix("0x1.8p-1075", &end) == 0x1p-1074 && errno == ERANGE);
+    errno = 0;
+    Require(strtod_nid_postfix("-0x1.000001p-1075", &end) == -0x1p-1074 && errno == ERANGE);
+    errno = 0;
+    Require(strtod_nid_postfix("0x1p-1074", &end) == 0x1p-1074 && strtod_nid_postfix("0x1.8p-1074", &end) == 0x1p-1073 && errno == 0);
+    Require(strtod_nid_postfix("0x1p-1076", &end) == 0.0 && errno == ERANGE);
+    errno = 0;
+    Require(strtod_nid_postfix("0x1p+1100", &end) == HUGE_VAL && errno == ERANGE);
+    errno = 7;
+    Require(strtof_nid_postfix("0x1p-150", &end) == 0.0f && strtof_nid_postfix("0x1p+200", &end) == HUGE_VALF && errno == 7);
+    Require(strtold_nid_postfix("0x1p-16446", &end) == 0.0L && strtold_nid_postfix("0x1p+20000", &end) == HUGE_VALL && errno == 7);
+    Require(strtof_nid_postfix("1e39", &end) == HUGE_VALF && errno == ERANGE);
+    errno = 0;
 }
 
 static void CheckHypotSpecialValue() {
@@ -1206,16 +1219,23 @@ static void CheckLongDoubleRounding(long double value, std::int64_t expected, bo
     }
 }
 
-static void CheckNoConversionIsPositiveZero() {
+static void CheckNoConversionZero() {
     for (const char* text : {"", " ", "-", "+", "-.", "+.", "-x", "-.e1", "-e5", "- 1", "  -."}) {
         char* end = nullptr;
         const double parsed = strtod_nid_postfix(text, &end);
         Require(parsed == 0. && !std::signbit(parsed) && end == text);
+        const bool negative = std::strchr(text, '-') != nullptr;
+        const float parsedFloat = strtof_nid_postfix(text, &end);
+        Require(parsedFloat == 0.f && std::signbit(parsedFloat) == negative && end == text);
+        const long double parsedLong = strtold_nid_postfix(text, &end);
+        Require(parsedLong == 0.L && std::signbit(parsedLong) == negative && end == text);
+        Require(!std::signbit(atof_nid_postfix(text)));
+    }
+    for (const char* text : {"-i", "-in", "-N", "-nax"}) {
+        char* end = nullptr;
         const float parsedFloat = strtof_nid_postfix(text, &end);
         Require(parsedFloat == 0.f && !std::signbit(parsedFloat) && end == text);
-        const long double parsedLong = strtold_nid_postfix(text, &end);
-        Require(parsedLong == 0.L && !std::signbit(parsedLong) && end == text);
-        Require(!std::signbit(atof_nid_postfix(text)));
+        Require(!std::signbit(strtold_nid_postfix(text, nullptr)));
     }
     char* end = nullptr;
     const char negativeZero[] = "-0.0x";
@@ -1241,9 +1261,9 @@ static void CheckNoConversionIsPositiveZero() {
     const double parsedWide = wcstod_nid_postfix(wide, &wideEnd);
     Require(parsedWide == 0. && !std::signbit(parsedWide) && wideEnd == wide);
     const float parsedWideFloat = wcstof_nid_postfix(wide, &wideEnd);
-    Require(parsedWideFloat == 0.f && !std::signbit(parsedWideFloat) && wideEnd == wide);
+    Require(parsedWideFloat == 0.f && std::signbit(parsedWideFloat) && wideEnd == wide);
     const long double parsedWideLong = wcstold_nid_postfix(wide, &wideEnd);
-    Require(parsedWideLong == 0.L && !std::signbit(parsedWideLong) && wideEnd == wide);
+    Require(parsedWideLong == 0.L && std::signbit(parsedWideLong) && wideEnd == wide);
 }
 
 template<typename TValue, std::size_t TBytes>
@@ -1275,7 +1295,7 @@ static void CheckDinkumwareFloatCharacteristics() {
 int main() {
     CheckFloatClassification();
     CheckDinkumwareConstants();
-    CheckNoConversionIsPositiveZero();
+    CheckNoConversionZero();
     CheckMissingClassificationExports();
     CheckFloatMathExports();
     CheckIntegerConversions();
