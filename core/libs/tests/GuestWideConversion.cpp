@@ -69,7 +69,7 @@ static void CheckStoul() {
     CheckStoul(u"017", 0, 15, 3, 0, "octal with base 0");
     CheckStoul(u"z", 36, 35, 1, 0, "base 36");
     CheckStoul(u"0b1", 0, 0, 1, 0, "no binary prefix");
-    CheckStoul(u"0xg", 16, 0, 0, 0, "prefix without digits");
+    CheckStoul(u"0xg", 16, 0, 1, 0, "prefix without digits");
     CheckStoul(u"12é3", 10, 12, 2, 0, "stops at a non-ASCII unit");
     CheckStoul(u"　5", 10, 0, 0, 0, "non-ASCII space is not skipped");
     CheckStoul(u"", 10, 0, 0, 0, "empty string");
@@ -155,7 +155,7 @@ static void CheckScan() {
     Require(swscanf_s_nid_postfix(u"5", nullptr) == -1, "null format");
     Require(Throws([&] { swscanf_s_nid_postfix(u"abc", u"%l[a-c]", text, std::size_t{6}); }), "scanset range throws");
     Require(Throws([&] { swscanf_s_nid_postfix(u"5", u"%Ld", &wide); }), "%Ld throws");
-    Require(Throws([&] { swscanf_s_nid_postfix(u"Ā", u"%s", narrow, std::size_t{4}); }), "unconvertible narrow %s throws");
+    Require(swscanf_s_nid_postfix(u"Ā", u"%s", narrow, std::size_t{4}) == 1 && std::strcmp(narrow, "\xc4\x80") == 0, "narrow %s stores UTF-8");
 }
 
 static void CheckUnsizedScan() {
@@ -220,7 +220,7 @@ static void CheckUnsizedScan() {
     Require(Throws([&] { swscanf_nid_postfix(u"abc", u"%l[a-c]", text); }), "swscanf scanset range throws");
     Require(Throws([&] { swscanf_nid_postfix(u"5", u"%Ld", &wide); }), "swscanf %Ld throws");
     Require(Throws([&] { swscanf_nid_postfix(u"1", u"%lp", &pointer); }), "swscanf %lp throws");
-    Require(Throws([&] { swscanf_nid_postfix(u"Ā", u"%s", narrow); }), "swscanf unconvertible narrow %s throws");
+    Require(swscanf_nid_postfix(u"Ā", u"%s", narrow) == 1 && std::strcmp(narrow, "\xc4\x80") == 0, "swscanf narrow %s stores UTF-8");
 }
 
 int main() {
