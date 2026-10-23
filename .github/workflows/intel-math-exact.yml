@@ -56,6 +56,18 @@ jobs:
           ninja -C build -t commands guest_math_exact_tests | grep GuestMathExact.cpp || true
           ninja -C build guest_math_exact_tests guest_math_tests
 
+      - name: Direct run on the partial build
+        continue-on-error: true
+        working-directory: AnyPS5/build/core/libs/prx/libc
+        run: |
+          set -x
+          otool -L ../../../../tests/guest_math_exact_tests || true
+          ../../../../tests/guest_math_exact_tests; echo "exit=$?"
+
+      - name: Full build
+        working-directory: AnyPS5
+        run: ninja -C build && ninja -C build libs
+
       - name: guest_math_exact
         id: exact
         continue-on-error: true
