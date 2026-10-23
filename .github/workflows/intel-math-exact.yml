@@ -66,8 +66,9 @@ jobs:
         continue-on-error: true
         working-directory: AnyPS5/build/core/libs/prx/libc
         run: |
-          set -x
-          otool -L ../../../../tests/guest_math_exact_tests || true
+          set +e -x
+          file ../../../../tests/guest_math_exact_tests
+          otool -L ../../../../tests/guest_math_exact_tests
           ../../../../tests/guest_math_exact_tests; echo "exit=$?"
           lldb --batch -o "process handle -p true -s false -n false SIGSEGV SIGBUS SIGUSR1 SIGUSR2" -o run -o "bt 25" -o "process kill" -- ../../../../tests/guest_math_exact_tests || true
 
