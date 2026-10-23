@@ -70,7 +70,7 @@ jobs:
           file ../../../../tests/guest_math_exact_tests
           otool -L ../../../../tests/guest_math_exact_tests
           ../../../../tests/guest_math_exact_tests; echo "exit=$?"
-          lldb --batch -o "process handle -p true -s false -n false SIGSEGV SIGBUS SIGUSR1 SIGUSR2" -o run -o "bt 25" -o "process kill" -- ../../../../tests/guest_math_exact_tests || true
+          lldb --batch -o "process handle -p true -s false -n false SIGSEGV SIGBUS SIGUSR1 SIGUSR2" -o run -k "bt 30" -k "image list -b" -k "process kill" -- ../../../../tests/guest_math_exact_tests || true
 
       - name: guest_math_exact
         id: exact
