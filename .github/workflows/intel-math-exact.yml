@@ -49,6 +49,15 @@ jobs:
           echo "TREE=$(git rev-parse 'HEAD^{tree}')"
           git submodule update --init --recursive --depth 1
 
+      - name: Make the test print its failing line (CI only)
+        working-directory: AnyPS5
+        run: |
+          f=core/libs/tests/GuestMathExact.cpp
+          grep -n 'static void Require' "$f"
+          perl -0pi -e 's/static void Require\(bool value\) \{ if \(!value\) std::abort\(\); \}/static void Require(bool value, std::source_location where = std::source_location::current()) { if (!value) { std::fprintf(stderr, "guest_math_exact check failed at line %u\\n", static_cast<unsigned>(where.line())); std::abort(); } }/' "$f"
+          perl -0pi -e 's/\A/#include <cstdio>\n#include <source_location>\n/' "$f"
+          grep -n 'static void Require' "$f"
+
       - name: Configure
         working-directory: AnyPS5
         run: |
