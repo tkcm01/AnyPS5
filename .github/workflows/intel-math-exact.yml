@@ -1,7 +1,7 @@
 # Fork-only probe: runs guest_math_exact on an Intel Mac.
 name: Intel math exact
 
-on: [push, workflow_dispatch]
+on: [push, pull_request, workflow_dispatch]
 
 permissions:
   contents: read
