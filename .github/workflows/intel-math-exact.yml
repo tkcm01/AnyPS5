@@ -11,6 +11,12 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 150
     steps:
+      - name: Pick the newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          newest=$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)
+          sudo xcode-select -s "$newest"
+
       - name: Runner info
         run: |
           set -x
@@ -63,10 +69,7 @@ jobs:
           set -x
           otool -L ../../../../tests/guest_math_exact_tests || true
           ../../../../tests/guest_math_exact_tests; echo "exit=$?"
-
-      - name: Full build
-        working-directory: AnyPS5
-        run: ninja -C build && ninja -C build libs
+          lldb --batch -o "process handle -p true -s false -n false SIGSEGV SIGBUS SIGUSR1 SIGUSR2" -o run -o "bt 25" -o "process kill" -- ../../../../tests/guest_math_exact_tests || true
 
       - name: guest_math_exact
         id: exact
