@@ -1,0 +1,74 @@
+name: Intel math exact
+
+on: [push, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  intel:
+    runs-on: macos-15-intel
+    timeout-minutes: 150
+    steps:
+      - name: Runner info
+        run: |
+          set -x
+          sysctl -n machdep.cpu.brand_string
+          sysctl -n hw.ncpu
+          sysctl -n machdep.cpu.features || true
+          uname -a
+          sw_vers
+          clang --version
+          xcodebuild -version
+          xcrun --show-sdk-path
+          cmake --version
+          ninja --version || brew install ninja
+
+      - name: Assemble tree
+        run: |
+          set -ex
+          git config --global user.name github-actions
+          git config --global user.email github-actions@users.noreply.github.com
+          git clone --filter=blob:none --branch ci/macos-series-2 https://github.com/mugurc/AnyPS5.git AnyPS5
+          cd AnyPS5
+          git checkout 53db0badb
+          git remote add upstream https://github.com/boykopovar/AnyPS5.git
+          git fetch upstream pull/7524/head:pr-7524 pull/7937/head:pr-7937 pull/7332/head:pr-7332
+          git cherry-pick f8545e961
+          git cherry-pick c6f44a028a ca00680339 4e5dba2db6
+          git cherry-pick a5c41edb8
+          git log --oneline -8
+          echo "HEAD=$(git rev-parse HEAD)"
+          echo "TREE=$(git rev-parse 'HEAD^{tree}')"
+          git submodule update --init --recursive --depth 1
+
+      - name: Configure
+        working-directory: AnyPS5
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+
+      - name: Build test targets
+        working-directory: AnyPS5
+        run: |
+          set -x
+          ninja -C build -t commands guest_math_exact_tests | grep GuestMathExact.cpp || true
+          ninja -C build guest_math_exact_tests guest_math_tests
+
+      - name: guest_math_exact
+        id: exact
+        continue-on-error: true
+        working-directory: AnyPS5
+        run: ctest --test-dir build -R '^guest_math_exact$' --output-on-failure -V
+
+      - name: guest_math
+        id: math
+        continue-on-error: true
+        working-directory: AnyPS5
+        run: ctest --test-dir build -R '^guest_math$' --output-on-failure
+
+      - name: Summary
+        run: |
+          echo "guest_math_exact: ${{ steps.exact.outcome }}"
+          echo "guest_math: ${{ steps.math.outcome }}"
+          echo "guest_math_exact: ${{ steps.exact.outcome }}, guest_math: ${{ steps.math.outcome }}" >> "$GITHUB_STEP_SUMMARY"
