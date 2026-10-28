@@ -2105,9 +2105,18 @@ int APS5_VABI scePthreadSuspendAll(void) {
     return 0;
 }
 
-int APS5_VABI scePthreadTimedjoin(void) {
-    NotImplemented_nid_no_patch(__func__);
-    return 0;
+int APS5_VABI scePthreadTimedjoin(Pthread thread, void** value, KernelUseconds usec) {
+    KernelTimespec abstime{};
+    if (clock_gettime_nid_postfix(0, &abstime) != 0) {
+        return SCE_KERNEL_ERROR_EINVAL;
+    }
+    abstime.tv_sec += static_cast<KernelTime_t>(usec / 1000000ULL);
+    abstime.tv_nsec += static_cast<long>((usec % 1000000ULL) * 1000ULL);
+    if (abstime.tv_nsec >= 1000000000L) {
+        abstime.tv_sec += 1;
+        abstime.tv_nsec -= 1000000000L;
+    }
+    return SceResult(pthread_timedjoin_np_nid_postfix(thread, value, &abstime));
 }
 
 int APS5_VABI sched_setscheduler_nid_postfix(int pid, int policy, const KernelSchedParam* param) {
