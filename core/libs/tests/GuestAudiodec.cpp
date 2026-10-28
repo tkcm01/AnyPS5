@@ -1,4 +1,5 @@
 #include "prx/libSceAudiodec/include/Api.hpp"
+#include "prx/libSceAudiodec.native/include/Api.hpp"
 #include "SceTypes.hpp"
 #include "prx/libc/include/general/VabiMacros.hpp"
 #include <cmath>
@@ -194,6 +195,7 @@ const std::uint8_t HEAAC_STEREO[] = {
 constexpr std::int32_t errorApiFail = static_cast<std::int32_t>(0x807F0000);
 constexpr std::int32_t errorInvalidType = static_cast<std::int32_t>(0x807F0001);
 constexpr std::int32_t errorArg = static_cast<std::int32_t>(0x807F0002);
+constexpr std::int32_t errorAlreadyInitialized = static_cast<std::int32_t>(0x807F0003);
 constexpr std::int32_t errorInvalidParamSize = static_cast<std::int32_t>(0x807F0004);
 constexpr std::int32_t errorInvalidBsiInfoSize = static_cast<std::int32_t>(0x807F0005);
 constexpr std::int32_t errorInvalidCtrlPointer = static_cast<std::int32_t>(0x807F0008);
@@ -369,6 +371,16 @@ void TestAt9() {
 }
 
 int main() {
+    Require(sceAudiodecTermLibrary_nid_postfix() == 0);
+    Require(sceAudiodecInitLibrary_nid_postfix(nullptr) == 0);
+    Require(sceAudiodecInitLibrary_nid_postfix(nullptr) == errorAlreadyInitialized);
+    int dummyParam = 0;
+    Require(sceAudiodecInitLibrary_nid_postfix(&dummyParam) == errorAlreadyInitialized);
+    Require(sceAudiodecTermLibrary_nid_postfix() == 0);
+    Require(sceAudiodecTermLibrary_nid_postfix() == 0);
+    Require(sceAudiodecInitLibrary_nid_postfix(&dummyParam) == 0);
+    Require(sceAudiodecTermLibrary_nid_postfix() == 0);
+
     Require(sceAudiodecInitLibrary(0) == errorInvalidType);
     Require(sceAudiodecInitLibrary(4) == errorInvalidType);
     Require(sceAudiodecTermLibrary(0) == errorInvalidType);
