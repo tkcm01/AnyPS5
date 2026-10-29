@@ -167,7 +167,8 @@ void TestRejectedLevels() {
 }
 
 void TestPadSpeakerVolume() {
-    const auto block = Ramp();
+    std::vector<std::int16_t> block(frames);
+    for (std::uint32_t frame = 0; frame < frames; frame++) block[frame] = frame % 2 == 0 ? 16384 : -16384;
     int closed = 0;
     Require(Play(portTypePadSpeaker, formatS16Mono, block, [&closed](int handle) {
         closed = handle;

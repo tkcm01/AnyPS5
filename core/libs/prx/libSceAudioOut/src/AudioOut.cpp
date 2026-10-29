@@ -35,6 +35,7 @@ static constexpr int PORT_TYPE_AUX = 127;
 static constexpr int PORTS_MAX = 32;
 static constexpr int DEFAULT_VOLUME = 32768;
 static constexpr int DEFAULT_PADSPK_MIX_LEVEL = 11626;
+static constexpr int PADSPK_VOLUME_MAX = 127;
 static constexpr std::uint32_t FORMAT_MASK = 0xFFu;
 static constexpr std::uint64_t TARGET_LATENCY_US = 40000;
 static constexpr std::uint64_t DRAIN_TIMEOUT_US = 200000;
@@ -118,7 +119,7 @@ struct Port {
     int channels = 0;
     int volume[8] = {};
     int mixLevel = DEFAULT_VOLUME;
-    int padSpkVolume = 127;
+    int padSpkVolume = PADSPK_VOLUME_MAX;
     std::uint64_t lastDataOutputTime = 0;
     std::uint64_t virtualQueueEnd = 0;
     AudioOut2PadLayout padLayout;
@@ -381,7 +382,7 @@ static int allocatePort(int type, std::uint32_t len, std::uint32_t freq, Format 
             port.lastDataOutputTime = 0;
             port.virtualQueueEnd = sceKernelGetProcessTime();
             port.mixLevel = type == PORT_TYPE_PADSPK ? DEFAULT_PADSPK_MIX_LEVEL : DEFAULT_VOLUME;
-            port.padSpkVolume = 127;
+            port.padSpkVolume = PADSPK_VOLUME_MAX;
             if (type == PORT_TYPE_VIBRATION) {
                 try {
                     openVibrationDevice(port);
@@ -590,7 +591,7 @@ int APS5_VABI sceAudioOutGetPortState(int handle, AudioOutPortState* state) {
         return -2144993277;
     }
     state->rerouteCounter = 0;
-    state->volume = static_cast<std::uint8_t>(port->type == PORT_TYPE_PADSPK ? port->padSpkVolume : 127);
+    state->volume = static_cast<std::uint8_t>(port->type == PORT_TYPE_PADSPK ? port->padSpkVolume : PADSPK_VOLUME_MAX);
     state->flag = 0;
     state->activeState = 0;
     state->reserved[0] = 0;
@@ -699,7 +700,7 @@ int APS5_VABI sceAudioOutSetPadSpkVolume(int handle, int volume) {
     if (port == nullptr) {
         return -2144993277;
     }
-    if (volume < 0 || volume > 127) {
+    if (volume < 0 || volume > PADSPK_VOLUME_MAX) {
         return -2144993271;
     }
     if (port->type != PORT_TYPE_PADSPK) {
