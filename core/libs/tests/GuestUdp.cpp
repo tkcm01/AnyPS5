@@ -335,6 +335,10 @@ int main() {
     queued = -1;
     Require(_ioctl_nid_postfix(receiver, 0x4004667f, &queued) == 0 && queued == 0);
     Require(_ioctl_nid_postfix(receiver, 123, &queued) == -1 && *__error_nid_postfix() == 25);
+    Require(ioctl_nid_postfix(receiver, 0x8004667e, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
+    Require(ioctl_nid_postfix(receiver, 0x4004667f, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
+    Require(_ioctl_nid_postfix(receiver, 0x8004667e, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
+    Require(_ioctl_nid_postfix(receiver, 0x4004667f, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
     char head[] = "scatter ";
     char tail[] = "gather";
     KernelIovec parts[2]{{head, 8}, {tail, 6}};
