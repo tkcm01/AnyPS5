@@ -193,6 +193,8 @@ static void ReceiveAnsweredWithoutTheHost() {
     Require(shutdown_nid_postfix(accepted, 0) == 0);
     int queued = -1;
     Require(ioctl_nid_postfix(accepted, ReadableBytes, &queued) == 0 && queued == 0);
+    Require(ioctl_nid_postfix(accepted, ReadableBytes, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
+    Require(_ioctl_nid_postfix(accepted, ReadableBytes, reinterpret_cast<void*>(std::uintptr_t{0x10})) == -1 && *__error_nid_postfix() == 14);
     Require(recv_nid_postfix(accepted, received, sizeof(received), 0) == 0);
     Require(recv_nid_postfix(accepted, received, sizeof(received), DontWait) == 0);
     senderSize = sender.size();
