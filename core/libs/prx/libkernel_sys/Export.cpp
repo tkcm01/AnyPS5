@@ -532,10 +532,11 @@ int APS5_VABI kenv_nid_postfix(int what, const char* name, char* value, int len)
     auto& entries = environment.entries;
     switch (what) {
     case KenvGet: {
+        if (len < 0) return static_cast<int>(Fail(GuestEinval));
         const auto found = FindKernelEnv(entries, key);
         if (found == entries.end()) return static_cast<int>(Fail(GuestEnoent));
         const std::size_t size = found->size() - key.size();
-        const std::size_t limit = static_cast<std::size_t>(static_cast<std::int64_t>(len));
+        const std::size_t limit = static_cast<std::size_t>(len);
         const std::size_t taken = std::min(size, limit);
         if (!GuestCopyOut_nid_no_patch(value, found->c_str() + key.size() + 1, taken)) return static_cast<int>(Fail(GuestEfault));
         return static_cast<int>(taken);
