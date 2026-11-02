@@ -1099,6 +1099,7 @@ void CheckKernelEnvironment() {
 
     Require(Kenv(set, "anyps5.alpha", "one", 4) == 0);
     Require(Kenv(get, "anyps5.alpha", buffer, sizeof(buffer)) == 4 && std::strcmp(buffer, "one") == 0);
+    Require(Kenv(get, "anyps5.alpha", buffer, -1) == -1 && Error() == 22);
     Require(Kenv(get, "anyps5", buffer, sizeof(buffer)) == -1 && Error() == 2);
     Require(Kenv(get, "anyps5.alph", buffer, sizeof(buffer)) == -1 && Error() == 2);
     Require(Kenv(get, "anyps5.alphaa", buffer, sizeof(buffer)) == -1 && Error() == 2);
