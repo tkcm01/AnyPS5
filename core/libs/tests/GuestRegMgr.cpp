@@ -22,6 +22,7 @@ int main() {
     std::int32_t value = 0;
     Require(ReportsNotImplemented("sceRegMgrNonSysGetInt", [&] { sceRegMgrNonSysGetInt(0, 0, &value); }));
     Require(ReportsNotImplemented("sceRegMgrNonSysGetInt", [&] { sceRegMgrNonSysGetInt(-1, 1, nullptr); }));
+    Require(ReportsNotImplemented("sceRegMgrCheckError", [&] { sceRegMgrCheckError(); }));
 
     int32_t intVal = 0;
     char strBuf[64] = {};
