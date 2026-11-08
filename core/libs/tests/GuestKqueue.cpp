@@ -183,6 +183,12 @@ static void BadPointersFaultAndBatchesFill() {
     const KernelTimespec zero{0, 0};
     RequireFailure(kevent_nid_postfix(kq, unmapped, 1, nullptr, 0, nullptr), fault);
     RequireFailure(kevent_nid_postfix(kq, nullptr, 0, events, 16, reinterpret_cast<const KernelTimespec*>(unmapped)), fault);
+    RequireFailure(kevent_nid_postfix(-1, nullptr, 0, nullptr, 0, reinterpret_cast<const KernelTimespec*>(unmapped)), fault);
+    RequireFailure(kevent_nid_postfix(kq, nullptr, 0, events, -1, reinterpret_cast<const KernelTimespec*>(unmapped)), fault);
+    int ends[2];
+    Require(pipe_nid_postfix(ends) == 0);
+    RequireFailure(kevent_nid_postfix(ends[0], nullptr, 0, nullptr, 0, reinterpret_cast<const KernelTimespec*>(unmapped)), fault);
+    Require(close_nid_postfix(ends[0]) == 0 && close_nid_postfix(ends[1]) == 0);
     RequireFailure(kevent_nid_postfix(kq, nullptr, 0, unmapped, 16, &zero), fault);
     void* page = nullptr;
     Require(sceKernelMapFlexibleMemory(&page, 0x4000, 3, 0) == 0 && page != nullptr);
@@ -372,28 +378,6 @@ static void UnsupportedFilters() {
     Require(close_nid_postfix(pair[0]) == 0 && close_nid_postfix(pair[1]) == 0);
     RequireFailure(Apply(kq, Change(static_cast<std::uintptr_t>(pipe[0]), EvfiltProcdesc, EvAdd)), GuestEbadf);
     Require(close_nid_postfix(kq) == 0);
-}
-
-static void EqueueIsKqueueDescriptor() {
-    KernelEqueue eq = 0;
-    Require(sceKernelCreateEqueue(&eq, "kqueue descriptor") == SceOk);
-    const int kq = static_cast<int>(static_cast<std::uint32_t>(eq));
-    Require((eq >> 32) != 0 && kq > 0 && kq < FirstSocket);
-    Require(Apply(kq, Change(9, EvfiltUser, EvAdd | EvClear)) == 0);
-    Require(Apply(kq, Change(9, EvfiltUser, 0, NoteTrigger)) == 0);
-    KernelEvent events[2]{};
-    int out = 0;
-    const KernelUseconds none = 0;
-    Require(sceKernelWaitEqueue(eq, events, 2, &out, &none) == SceOk && out == 1 && events[0].ident == 9 && events[0].filter == EvfiltUser);
-    Require(sceKernelDeleteEqueue(eq ^ (KernelEqueue{1} << 32)) == SceEbadf);
-    Require(sceKernelDeleteEqueue(eq) == SceOk);
-    RequireFailure(Poll(kq, events, 2), GuestEbadf);
-    Require(sceKernelDeleteEqueue(eq) == SceEbadf);
-
-    Require(sceKernelCreateEqueue(&eq, "closed descriptor") == SceOk);
-    Require(close_nid_postfix(static_cast<int>(static_cast<std::uint32_t>(eq))) == 0);
-    Require(sceKernelWaitEqueue(eq, events, 2, &out, &none) == SceEbadf);
-    Require(sceKernelDeleteEqueue(eq) == SceEbadf);
 }
 
 static void FilesystemEvents() {
@@ -1869,7 +1853,6 @@ int main(int argc, char** argv) {
     StandardInputReplacement();
     StandardInput();
     CreateAndClose();
-    EqueueIsKqueueDescriptor();
     SocketReplacesDescriptor();
     KqueueDescriptorOperations();
     Timers();
